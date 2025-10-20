@@ -1,1 +1,4 @@
 /images
+
+# Hugging Face tokens (keep these private!)
+hf_tokens/
