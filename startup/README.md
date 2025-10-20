@@ -1,187 +1,225 @@
-# WAN 2.2 ComfyUI Setup for Vast.ai
+# WAN 2.2 ComfyUI Setup Script
 
-Automated setup script for running **WAN Video 2.2 Image-to-Video (I2V-A14B)** on Vast.ai GPU instances with ComfyUI.
+Automated initialization script for running **WAN Video 2.2 I2V-A14B** on Vast.ai with ComfyUI.
 
-## 🎯 Overview
+## 📁 Files in This Directory
 
-This script automatically:
-- Downloads WAN 2.2 I2V-A14B models (~126GB total)
-- Installs ComfyUI plugins (Kijai's WanVideoWrapper + VideoHelperSuite)
-- Configures Python environment with all dependencies
-- Launches ComfyUI ready for I2V generation
+- **`init.bash`** - Main startup script (run on Vast.ai instance boot)
+- **`README.md`** - This documentation file
 
-## 📋 Requirements
+## 🚀 Quick Start
 
-### Hardware (Vast.ai)
-- **Recommended:** H100 (80GB) or H200 (141GB)
-- **Minimum:** 80GB VRAM for FP16 models
-- **Storage:** 150GB+ for models + workspace
-
-### Software
-- Docker image with ComfyUI pre-installed (e.g., `runpod/pytorch:2.1.0-py3.10-cuda12.1`)
-- Port 8188 exposed for ComfyUI web interface
-
-## 🚀 Setup Instructions
-
-### 1. Get Hugging Face Token (Required)
-WAN 2.2 models are gated and require authentication:
+### 1. Get Hugging Face Token
 1. Visit https://huggingface.co/settings/tokens
-2. Create a new token with "Read" access
-3. Accept the model license at https://huggingface.co/Wan-AI/Wan2.2-I2V-A14B
+2. Create a new "Read" token
+3. Accept license at https://huggingface.co/Wan-AI/Wan2.2-I2V-A14B
 
 ### 2. Configure Vast.ai Template
 
-**Option A: Interactive Setup (First Time)**
+Upload `init.bash` to your template and set the on-start script:
+
 ```bash
-# On-start script
+# For first-time setup (interactive mode)
 export HF_TOKEN="hf_YOUR_TOKEN_HERE"
 export INIT_INTERACTIVE=1
 /bin/bash /workspace/init.bash
-```
 
-**Option B: Auto-Start (After Testing)**
-```bash
-# On-start script
+# For production (auto-start)
 export HF_TOKEN="hf_YOUR_TOKEN_HERE"
 /bin/bash /workspace/init.bash
 ```
 
-### 3. Upload Script to Template
-1. In Vast.ai, go to **Templates** → **Edit Template**
-2. Under **Container Disk**, mount your startup script:
-   - Source: Upload `init.bash`
-   - Destination: `/workspace/init.bash`
-3. Set execute permissions: `chmod +x /workspace/init.bash`
+### 3. Launch Instance
+- Select H100 or H200 GPU (80GB+ VRAM)
+- First boot: ~10-20 minutes (downloads models)
+- Subsequent boots: ~30 seconds (cached)
 
-### 4. Launch Instance
-1. Select an H100 or H200 instance
-2. Use your configured template
-3. Instance will auto-download models and start ComfyUI (~10-20 min first time)
+## 📦 What the Script Does
 
-## 🔐 Security & Access
+1. **Creates directories** for models in `/workspace/ComfyUI/models/`
+2. **Downloads WAN 2.2 models** (~126GB):
+   - High-noise transformer (57GB)
+   - Low-noise transformer (57GB)
+   - Text encoder (11.4GB)
+   - CLIP Vision (1.5GB)
+   - VAE (508MB)
+3. **Installs ComfyUI plugins**:
+   - ComfyUI-WanVideoWrapper (Kijai's wrapper)
+   - VideoHelperSuite (video utilities)
+4. **Installs Python dependencies**:
+   - PyTorch + CUDA 12.1
+   - Transformers, accelerate, etc.
+   - Flash Attention (optional)
+5. **Launches ComfyUI** on port 8188
 
-### ComfyUI Has NO Built-in Authentication!
-By default, anyone with your instance IP can access ComfyUI on port 8188.
-
-**Secure Access Options:**
-
-#### Option 1: SSH Tunnel (Recommended)
-```bash
-# On your local machine
-ssh -L 8188:localhost:8188 root@<vast-instance-ip>
-```
-Then open http://localhost:8188 in your browser.
-
-#### Option 2: Cloudflare Tunnel
-```bash
-# Inside the container
-cloudflared tunnel --url http://localhost:8188 --no-autoupdate
-```
-Gives you a secure `https://random.trycloudflare.com` URL.
-
-#### Option 3: Configure Vast.ai Firewall
-- In Vast.ai, limit port 8188 to your IP only
-- Still vulnerable if your IP changes
-
-## 📦 Downloaded Models
-
-The script downloads these files to `/workspace/ComfyUI/models/`:
-
-| Component | Path | Size | Purpose |
-|-----------|------|------|---------|
-| High-noise Transformer | `diffusion_models/wan2.2_i2v_high_noise.safetensors` | ~57GB | Early denoising steps |
-| Low-noise Transformer | `diffusion_models/wan2.2_i2v_low_noise.safetensors` | ~57GB | Refinement steps |
-| Text Encoder | `text_encoders/umt5-xxl-enc-bf16.pth` | 11.4GB | Text prompt encoding |
-| CLIP Vision | `clip_vision/siglip-so400m-patch14-384.safetensors` | ~1.5GB | Image conditioning |
-| VAE | `vae/wan2.1_vae.pth` | 508MB | Latent decoding |
-
-## 🎨 Using WAN 2.2 in ComfyUI
-
-### Loading Models
-1. Open ComfyUI at `http://<instance-ip>:8188`
-2. Add nodes:
-   - **WanVideoWrapper Model Loader** (from Kijai's nodes)
-   - Load both high-noise and low-noise transformers
-   - Load text encoder, CLIP, and VAE
-
-### Image-to-Video Workflow
-1. **Input Image** → CLIP Vision Encoder
-2. **Text Prompt** (optional) → Text Encoder
-3. **WanVideo Sampler** → Configure:
-   - Resolution: 480p or 720p
-   - Frames: 81 (default)
-   - CFG scale: ~7.0
-4. **VAE Decode** → Video output
-
-Check the `workflows/` folder for example JSON files.
-
-## 🔧 Configuration Options
+## 🔧 Configuration
 
 ### Environment Variables
-- `HF_TOKEN`: Your Hugging Face access token (required)
-- `INIT_INTERACTIVE=1`: Pause before starting ComfyUI (for debugging)
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `HF_TOKEN` | ✅ Yes | Hugging Face access token |
+| `INIT_INTERACTIVE` | ❌ No | Set to `1` to pause before starting ComfyUI |
 
 ### Script Customization
-Edit `init.bash` to:
-- Change model download URLs
-- Add custom ComfyUI plugins
-- Sync workflows from your GitHub repo (see section 7 in script)
-- Modify Python dependencies
+
+Edit `init.bash` to customize:
+
+**Model sources** (lines 42-68):
+```bash
+download_if_missing "https://huggingface.co/Wan-AI/..." "$DIFF_DIR/..."
+```
+
+**Plugin selection** (lines 77-100):
+```bash
+git clone https://github.com/kijai/ComfyUI-WanVideoWrapper ...
+```
+
+**Python packages** (lines 103-112):
+```bash
+pip install torch torchvision torchaudio ...
+```
+
+**Workflow sync** (lines 114-123):
+Uncomment to auto-sync workflows from your GitHub repo.
+
+## 🔐 Security
+
+⚠️ **ComfyUI has NO authentication by default!**
+
+### Secure Access Methods
+
+**Option 1: SSH Tunnel** (recommended)
+```bash
+ssh -L 8188:localhost:8188 root@<vast-ip>
+# Then browse to http://localhost:8188
+```
+
+**Option 2: Cloudflare Tunnel**
+```bash
+cloudflared tunnel --url http://localhost:8188 --no-autoupdate
+```
+
+**Option 3: Vast.ai Firewall**
+- Configure IP whitelist in Vast.ai dashboard
+- Limit port 8188 to your IP only
 
 ## 🐛 Troubleshooting
 
-### Models fail to download
-- **Error:** `401 Unauthorized`
-  - Check your HF_TOKEN is valid
-  - Accept model license at https://huggingface.co/Wan-AI/Wan2.2-I2V-A14B
-  
-- **Error:** `Connection timeout`
-  - Resume download: Script will skip already downloaded files
-  - Or use `huggingface-cli download` manually
+### Download Failures
 
-### Out of memory
-- **80GB VRAM not enough?**
-  - Try FP8 quantized models from https://huggingface.co/Kijai/WanVideo_comfy_fp8_scaled
-  - Enable model offloading in ComfyUI settings
+**Error: `401 Unauthorized`**
+```
+Solution: 
+1. Check HF_TOKEN is set correctly
+2. Visit https://huggingface.co/Wan-AI/Wan2.2-I2V-A14B
+3. Click "Agree and access repository"
+```
 
-### ComfyUI won't start
-- Check logs: `docker logs <container-id>`
-- Verify entrypoint exists: `ls -la /workspace/ComfyUI/entrypoint.sh`
-- Test interactive mode: `export INIT_INTERACTIVE=1`
+**Error: `Connection timeout`**
+```
+Solution: Script auto-resumes (skips existing files)
+Just re-run: /bin/bash /workspace/init.bash
+```
+
+### Out of Memory
+
+**80GB VRAM not enough?**
+```
+Solution 1: Use FP8 models
+wget https://huggingface.co/Kijai/WanVideo_comfy_fp8_scaled/...
+
+Solution 2: Enable model offloading in ComfyUI settings
+```
+
+### ComfyUI Won't Start
+
+**Check entrypoint exists:**
+```bash
+ls -la /workspace/ComfyUI/entrypoint.sh
+```
+
+**View logs:**
+```bash
+docker logs <container-id>
+tail -f /workspace/ComfyUI/comfyui.log
+```
+
+**Test interactive mode:**
+```bash
+export INIT_INTERACTIVE=1
+/bin/bash /workspace/init.bash
+# Then manually: /workspace/ComfyUI/entrypoint.sh
+```
+
+## 📊 Model Details
+
+### WAN 2.2 I2V-A14B Architecture
+
+**Mixture-of-Experts (MoE):**
+- **Total params:** 27B
+- **Active per step:** 14B (~14B VRAM)
+- **High-noise expert:** Steps 1-15 (layout, composition)
+- **Low-noise expert:** Steps 16-30 (details, refinement)
+
+Both models are **required** and loaded together in ComfyUI.
+
+### Downloaded Files
+
+```
+/workspace/ComfyUI/models/
+├── diffusion_models/
+│   ├── wan2.2_i2v_high_noise.safetensors  (57GB)
+│   └── wan2.2_i2v_low_noise.safetensors   (57GB)
+├── text_encoders/
+│   └── umt5-xxl-enc-bf16.pth              (11.4GB)
+├── clip_vision/
+│   └── siglip-so400m-patch14-384.safetensors (1.5GB)
+└── vae/
+    └── wan2.1_vae.pth                     (508MB)
+```
+
+## 🎨 Using in ComfyUI
+
+1. Open ComfyUI: `http://<vast-ip>:8188`
+2. Load workflow from `../workflows/` folder
+3. Or create new workflow:
+   - **WanVideoWrapper Model Loader**
+   - **Load Image** → CLIP Vision
+   - **Text Prompt** → Text Encoder  
+   - **WanVideo Sampler** (480p or 720p, 81 frames)
+   - **VAE Decode** → Save Video
 
 ## 📚 Resources
 
-- **WAN 2.2 Docs:** https://github.com/Wan-Video/Wan2.2
-- **Kijai's Plugin:** https://github.com/kijai/ComfyUI-WanVideoWrapper
+- **WAN 2.2 Paper:** https://arxiv.org/abs/2503.20314
+- **Official Repo:** https://github.com/Wan-Video/Wan2.2
+- **Kijai's Wrapper:** https://github.com/kijai/ComfyUI-WanVideoWrapper
 - **ComfyUI Docs:** https://docs.comfy.org/
-- **Vast.ai Guides:** https://vast.ai/docs/
-
-## 🆚 WAN 2.1 vs 2.2
-
-**WAN 2.2 Improvements:**
-- Mixture-of-Experts (MoE) architecture → 27B params, only 14B active per step
-- Better motion quality and aesthetic control
-- Supports both 480p and 720p at 24fps
-- More stable camera movements
-
-**Note:** Your script was set up for WAN 2.1. I've updated it to WAN 2.2, which is the latest and recommended version as of October 2025.
+- **Hugging Face Models:** https://huggingface.co/Wan-AI
 
 ## 💾 Saving Your Setup
 
-Once models are downloaded and ComfyUI works:
-1. In Vast.ai, **Save Instance as Template**
-2. Name it: "WAN 2.2 + ComfyUI - H100"
-3. Next spin-up will be instant (no re-download)
+After first successful run:
 
-## 🔄 Updating Models
+1. In Vast.ai: **Save Instance as Template**
+2. Name: "WAN 2.2 + ComfyUI - H100"
+3. Next launches: Instant startup (models cached in template)
 
-To update to newer WAN versions:
-1. Edit `init.bash` URLs
-2. Delete old model files in `/workspace/ComfyUI/models/`
-3. Restart instance
+## 🔄 Updating
+
+To upgrade to newer WAN versions:
+
+1. Check for new models: https://huggingface.co/Wan-AI
+2. Update URLs in `init.bash` (lines 42-68)
+3. Delete old models: `rm -rf /workspace/ComfyUI/models/diffusion_models/*`
+4. Re-run: `/bin/bash /workspace/init.bash`
 
 ## 📝 Notes
 
-- **H100 vs H200:** Both are single GPUs (not clusters). H200 has more VRAM (141GB vs 80GB) but costs more.
-- **FP16 vs FP8:** FP16 = full precision (better quality, 80GB VRAM). FP8 = quantized (faster, ~40GB VRAM, slight quality loss).
-- **First run:** Expect 10-20 min for all downloads. Subsequent runs: instant if models cached.
+- **H100:** 80GB VRAM, $2-3/hr on Vast.ai
+- **H200:** 141GB VRAM, $4-6/hr (overkill for WAN 2.2)
+- **FP16:** Full precision, best quality, 80GB VRAM
+- **FP8:** Quantized, 2x faster, ~40GB VRAM, 95% quality
+
+First download takes 10-20 minutes depending on connection speed.
