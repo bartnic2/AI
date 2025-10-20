@@ -17,10 +17,6 @@ CLIP_DIR="$BASE_DIR/clip_vision"
 mkdir -p "$DIFF_DIR" "$VAE_DIR" "$TEXT_DIR" "$CLIP_DIR"
 
 # --- 2. Set Hugging Face token (REQUIRED for gated models) ---
-# Option A: Set token directly in script (REPLACE WITH YOUR ACTUAL TOKEN)
-# export HF_TOKEN="hf_your_actual_token_here"
-
-# Option B: Token is already set by Vast.ai on-start script (recommended)
 # In your Vast.ai template: export HF_TOKEN="..." before calling this script
 
 if [ -z "$HF_TOKEN" ]; then
