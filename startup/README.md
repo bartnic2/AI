@@ -11,28 +11,79 @@ Automated initialization script for running **WAN Video 2.2 I2V-A14B** on Vast.a
 
 ### 1. Get Hugging Face Token
 1. Visit https://huggingface.co/settings/tokens
-2. Create a new "Read" token
-3. Accept license at https://huggingface.co/Wan-AI/Wan2.2-I2V-A14B
+2. Click "Create new token"
+3. Name: "Vast.ai WAN Video" (or any name)
+4. Type: **Fine-grained** with "Read" access
+5. Copy the token value (starts with `hf_`)
+6. Visit https://huggingface.co/Wan-AI/Wan2.2-I2V-A14B
+7. Click "Agree and access repository"
 
-### 2. Configure Vast.ai Template
+### 2. Create Vast.ai Template
 
-Upload `init.bash` to your template and set the on-start script:
+**Step-by-step:**
 
-```bash
-# For first-time setup (interactive mode)
-export HF_TOKEN="hf_YOUR_TOKEN_HERE"
-export INIT_INTERACTIVE=1
-/bin/bash /workspace/init.bash
+1. **Go to Vast.ai** → Templates → Create New Template (or edit existing ComfyUI template)
 
-# For production (auto-start)
-export HF_TOKEN="hf_YOUR_TOKEN_HERE"
-/bin/bash /workspace/init.bash
-```
+2. **Select Base Image:**
+   - Use a ComfyUI-ready Docker image, e.g.:
+   - `runpod/pytorch:2.1.0-py3.10-cuda12.1`
+   - Or any image with Python 3.10+ and CUDA 12.1+
+
+3. **Set Environment Variables:**
+   Click "Add Environment Variable" and add:
+   
+   | Name | Value |
+   |------|-------|
+   | `HF_TOKEN` | Paste your `hf_...` token here |
+   | `INIT_INTERACTIVE` | `1` (for first run debugging) |
+
+4. **Set On-start Script:**
+   In the "On-start Script" text box, paste:
+
+   ```bash
+   curl -fsSL https://raw.githubusercontent.com/bartnic2/AI/main/startup/init.bash | bash
+   ```
+
+5. **Configure Storage:**
+   - **Container disk size:** Set to **200 GB** minimum
+   - Models need ~126GB, rest for workspace
+
+6. **Set Launch Mode:**
+   - For first run: **"Interactive Shell Server, SSH"**
+   - Allows you to monitor progress and debug if needed
+
+7. **Expose Ports:**
+   - Ensure port **8188** is exposed (for ComfyUI web interface)
+
+8. **Save Template:**
+   - Name it: "WAN 2.2 ComfyUI - Auto Setup"
+   - Save for future use
 
 ### 3. Launch Instance
-- Select H100 or H200 GPU (80GB+ VRAM)
-- First boot: ~10-20 minutes (downloads models)
-- Subsequent boots: ~30 seconds (cached)
+
+1. **Select GPU:**
+   - Filter for: H100 (80GB) or H200 (141GB)
+   - Recommended: H100 (best value for WAN 2.2)
+
+2. **Choose your template** from dropdown
+
+3. **Click "Rent"**
+
+4. **Monitor Progress:**
+   - SSH into instance: `ssh root@<instance-ip>`
+   - Watch setup: Script will show progress of downloads
+   - Expected time: 15-20 minutes first run
+
+5. **Access ComfyUI:**
+   - Once script completes, ComfyUI auto-starts
+   - Browse to: `http://<instance-ip>:8188`
+   - Or use SSH tunnel: `ssh -L 8188:localhost:8188 root@<instance-ip>`
+
+6. **After Success:**
+   - **Remove** `INIT_INTERACTIVE=1` from environment variables
+   - In Vast.ai: **"Save Instance as Template"**
+   - Name: "WAN 2.2 + ComfyUI (Ready)"
+   - Future launches: ~30 seconds (models cached!)
 
 ## 📦 What the Script Does
 
@@ -54,12 +105,14 @@ export HF_TOKEN="hf_YOUR_TOKEN_HERE"
 
 ## 🔧 Configuration
 
-### Environment Variables
+### Environment Variables (Set in Vast.ai Template)
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `HF_TOKEN` | ✅ Yes | Hugging Face access token |
-| `INIT_INTERACTIVE` | ❌ No | Set to `1` to pause before starting ComfyUI |
+| Variable | Required | Value | Description |
+|----------|----------|-------|-------------|
+| `HF_TOKEN` | ✅ Yes | `hf_xxx...` | Your Hugging Face access token |
+| `INIT_INTERACTIVE` | ❌ No | `1` | Set to pause before starting ComfyUI (for debugging) |
+
+**Where to set:** In Vast.ai template config → "Environment Variables" section
 
 ### Script Customization
 
@@ -111,9 +164,18 @@ cloudflared tunnel --url http://localhost:8188 --no-autoupdate
 **Error: `401 Unauthorized`**
 ```
 Solution: 
-1. Check HF_TOKEN is set correctly
-2. Visit https://huggingface.co/Wan-AI/Wan2.2-I2V-A14B
-3. Click "Agree and access repository"
+1. Check HF_TOKEN is set correctly in Vast.ai Environment Variables
+2. Verify token is valid: https://huggingface.co/settings/tokens
+3. Visit https://huggingface.co/Wan-AI/Wan2.2-I2V-A14B
+4. Click "Agree and access repository"
+```
+
+**Error: `HF_TOKEN not set`**
+```
+Solution:
+1. In Vast.ai template, go to Environment Variables section
+2. Add: HF_TOKEN = hf_YOUR_TOKEN_HERE
+3. Restart instance
 ```
 
 **Error: `Connection timeout`**

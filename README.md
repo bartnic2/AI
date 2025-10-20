@@ -36,19 +36,25 @@ d:\AI\
 
 1. **Get Hugging Face token:**
    - Visit https://huggingface.co/settings/tokens
-   - Create "Read" token
+   - Create new "Read" access token
    - Accept license: https://huggingface.co/Wan-AI/Wan2.2-I2V-A14B
 
-2. **Configure Vast.ai template:**
-   - Upload `startup/init.bash` to your instance
-   - Set on-start command:
+2. **Create Vast.ai template:**
+   - **Environment Variables** (add these):
+     - `HF_TOKEN` = `hf_YOUR_TOKEN_HERE`
+     - `INIT_INTERACTIVE` = `1` (for first run only)
+   - **On-start Script:**
      ```bash
-     export HF_TOKEN="hf_YOUR_TOKEN"; /bin/bash /workspace/init.bash
+     curl -fsSL https://raw.githubusercontent.com/bartnic2/AI/main/startup/init.bash | bash
      ```
+   - **Container disk size:** Set to **200 GB** minimum
+   - **Launch mode:** Select "Interactive Shell Server, SSH"
 
 3. **Launch instance:**
-   - First run: ~15 min (downloads models)
+   - Select H100/H200 GPU
+   - First run: ~15-20 min (downloads models)
    - Access ComfyUI: `http://<instance-ip>:8188`
+   - After success: Save as template for instant future launches
 
 📖 **Full documentation:** See [`startup/README.md`](startup/README.md)
 
@@ -67,13 +73,19 @@ Pre-configured ComfyUI workflows in `workflows/`:
 - Text-to-Video generation  
 - Advanced configurations with ControlNet
 
-## 🔒 Security Note
+## 🔒 Security Notes
 
-⚠️ **ComfyUI has no built-in authentication!** Use one of these methods:
+### Token Safety
+- ✅ **Never commit** your HF token to git (stored only in Vast.ai config)
+- ✅ Token is set as environment variable in Vast.ai template
+- ✅ Script downloads from public GitHub, token stays private
 
-- **SSH Tunnel:** `ssh -L 8188:localhost:8188 root@<vast-ip>`
+### ComfyUI Access
+⚠️ **ComfyUI has no built-in authentication!** Secure access options:
+
+- **SSH Tunnel (recommended):** `ssh -L 8188:localhost:8188 root@<vast-ip>`
 - **Cloudflare Tunnel:** `cloudflared tunnel --url http://localhost:8188`
-- **IP Whitelist:** Configure in Vast.ai firewall
+- **IP Whitelist:** Configure in Vast.ai firewall settings
 
 See [`startup/README.md`](startup/README.md) for detailed security setup
 
