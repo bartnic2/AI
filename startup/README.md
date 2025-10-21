@@ -11,12 +11,10 @@ Automated initialization script for running **WAN Video 2.2 I2V-A14B** on Vast.a
 
 ### 1. Get Hugging Face Token
 1. Visit https://huggingface.co/settings/tokens
-2. Click "Create new token"
-3. Name: "Vast.ai WAN Video" (or any name)
-4. Type: **Fine-grained** with "Read" access
-5. Copy the token value (starts with `hf_`)
-6. Visit https://huggingface.co/Wan-AI/Wan2.2-I2V-A14B
-7. Click "Agree and access repository"
+2. Click "Create new token" and set type to "Read" access
+3. Copy the token value (starts with `hf_`) for use in env vars below
+4. Visit https://huggingface.co/Wan-AI/Wan2.2-I2V-A14B
+5. Click "Agree and access repository"
 
 ### 2. Create Vast.ai Template
 
