@@ -1,155 +1,38 @@
-# WAN Video 2.2 - ComfyUI Automation
+=== Basic Info ===
 
-Automated setup for running **WAN Video 2.2 I2V-A14B** (Image-to-Video) on Vast.ai GPU rentals with ComfyUI.
+From the Comfy UI Docker Image Template Readme:
+https://cloud.vast.ai/template/readme/3272574a688022dd7062b4e5303d1348
 
-## � What is WAN Video 2.2?
+They provide a link to the source base image and custom comfy UI image (which extends from it)
 
-State-of-the-art open-source video generation model from Alibaba:
-- **Image-to-Video:** Animate still images with text prompts
-- **Resolution:** 480p or 720p @ 24fps
-- **Architecture:** 27B parameter MoE (Mixture-of-Experts)
-- **License:** Apache 2.0 (commercial use OK)
+Base:
+https://github.com/vast-ai/base-image/blob/main/Dockerfile
 
-## 📁 Repository Structure
+Comfy UI Extension:
+https://github.com/vast-ai/base-image/tree/main/derivatives/pytorch/derivatives/comfyui
 
-```
-d:\AI\
-├── startup/
-│   ├── init.bash          # Automated setup script for Vast.ai
-│   └── README.md          # Detailed setup documentation
-├── workflows/
-│   ├── Comfy_HunyuanVideo_I2V.json
-│   ├── Hallett_Wan21_Exploding_Building_Tutorial.json
-│   └── wan2.1_T2V_2.json
-├── images/                # Sample images for testing
-└── README.md              # This file
-```
+The docker file installs comfy UI.
 
-## 🚀 Quick Start
+You can also see there is both a docker entrypoint shell script that runs (after reviewing with the AI, you shouldn't need to modify this, as it just sets up Python and permissions, and is located on the base image). 
+After, it runs a special provisioning script. This script downloads the required models and workflows to be used in Comfy UI.
 
-### Prerequisites
-- Vast.ai account
-- H100 or H200 GPU rental (80GB+ VRAM)
-- Hugging Face account with token
+By default, the env var in the template sets the provisioning script to:
+https://github.com/vast-ai/base-image/blob/main/derivatives/pytorch/derivatives/comfyui/provisioning_scripts/default.sh
 
-### Setup Steps
+But you can actually select another one from Vast AI's github repo, such as:
+https://github.com/vast-ai/base-image/blob/main/derivatives/pytorch/derivatives/comfyui/provisioning_scripts/ltx-video.sh
 
-1. **Get Hugging Face token:**
-   - Visit https://huggingface.co/settings/tokens
-   - Create new "Read" access token
-   - Accept license: https://huggingface.co/Wan-AI/Wan2.2-I2V-A14B
+So this way you can setup an image to video model and workflow from the start! 
 
-2. **Create Vast.ai template:**
-   - **Environment Variables** (add these):
-     - `HF_TOKEN` = `hf_YOUR_TOKEN_HERE`
-     - `INIT_INTERACTIVE` = `1` (for first run only)
-   - **On-start Script:**
-     ```bash
-     curl -fsSL https://raw.githubusercontent.com/bartnic2/AI/main/startup/init.bash | bash
-     ```
-   - **Container disk size:** Set to **200 GB** minimum
-   - **Launch mode:** Select "Interactive Shell Server, SSH"
+=== UPDATES ===
 
-3. **Launch instance:**
-   - Select H100/H200 GPU
-   - First run: ~15-20 min (downloads models)
-   - Access ComfyUI: `http://<instance-ip>:8188`
-   - After success: Save as template for instant future launches
+Note you have created your own Comfy UI custom template (look under my templates) that you can use to modify and update the provisioning script (and other env vars) as needed (click my templates):
+https://cloud.vast.ai/templates/
 
-📖 **Full documentation:** See [`startup/README.md`](startup/README.md)
+For LTX, I checked for the latest updates:
+https://huggingface.co/Lightricks/LTX-Video
 
-## 🎯 What This Repository Provides
+I forked the LTX provisioning script, and updated to use the latest version of LTX and the recommended workflow using above as a guide and with the AI's help:
+https://gist.github.com/bartnic2/e0b6c5928430bd9047ea33127869f4c5
 
-### Automated Setup Script
-The `startup/init.bash` script handles everything:
-- ✅ Downloads WAN 2.2 models (~126GB)
-- ✅ Installs ComfyUI plugins
-- ✅ Configures Python environment
-- ✅ Launches ComfyUI web interface
-
-### Example Workflows
-Pre-configured ComfyUI workflows in `workflows/`:
-- Image-to-Video generation
-- Text-to-Video generation  
-- Advanced configurations with ControlNet
-
-## 🔒 Security Notes
-
-### Token Safety
-- ✅ **Never commit** your HF token to git (stored only in Vast.ai config)
-- ✅ Token is set as environment variable in Vast.ai template
-- ✅ Script downloads from public GitHub, token stays private
-
-### ComfyUI Access
-⚠️ **ComfyUI has no built-in authentication!** Secure access options:
-
-- **SSH Tunnel (recommended):** `ssh -L 8188:localhost:8188 root@<vast-ip>`
-- **Cloudflare Tunnel:** `cloudflared tunnel --url http://localhost:8188`
-- **IP Whitelist:** Configure in Vast.ai firewall settings
-
-See [`startup/README.md`](startup/README.md) for detailed security setup
-
-## � Models & Requirements
-
-### Hardware
-- **GPU:** H100 (80GB) or H200 (141GB) VRAM
-- **Storage:** 150GB+ for models and workspace
-- **Cost:** ~$2-4/hour on Vast.ai
-
-### Downloaded Models (~126GB total)
-| Component | Size | Purpose |
-|-----------|------|---------|
-| High-noise Transformer | 57GB | Early denoising (layout) |
-| Low-noise Transformer | 57GB | Refinement (details) |
-| Text Encoder (umt5-xxl) | 11.4GB | Text prompt encoding |
-| CLIP Vision | 1.5GB | Image conditioning |
-| VAE | 508MB | Latent decoding |
-
-## 🛠️ Customization
-
-The script is fully configurable. Common modifications:
-
-**Use FP8 models (half the VRAM):**
-```bash
-# Edit startup/init.bash, replace download URLs:
-https://huggingface.co/Kijai/WanVideo_comfy_fp8_scaled/...
-```
-
-**Auto-sync workflows from GitHub:**
-```bash
-# Uncomment section 7 in startup/init.bash
-WORKFLOW_REPO="https://github.com/youruser/yourrepo.git"
-```
-
-**Add custom ComfyUI plugins:**
-```bash
-# Add to section 5 in startup/init.bash
-git clone https://github.com/author/plugin $PLUGIN_DIR/plugin
-```
-
-## 📚 Additional Resources
-
-- **Official WAN 2.2:** https://github.com/Wan-Video/Wan2.2
-- **Research Paper:** https://arxiv.org/abs/2503.20314
-- **Hugging Face Models:** https://huggingface.co/Wan-AI
-- **ComfyUI Docs:** https://docs.comfy.org/
-- **Vast.ai Platform:** https://vast.ai/
-
-## 💡 Tips & Tricks
-
-- **Save as template:** After first successful run, save your Vast.ai instance as a template for instant future launches
-- **FP8 for budget:** Use quantized models to run on cheaper GPUs (~40GB VRAM)
-- **Batch generation:** Queue multiple prompts in ComfyUI to maximize GPU utilization
-- **Monitor costs:** Stop instance immediately after use (models persist in template)
-
-## 🤝 Contributing
-
-Found improvements or created useful workflows? PRs welcome!
-
-## � License
-
-This setup script is MIT licensed. WAN 2.2 models use Apache 2.0 (see model repository for details).
-
----
-
-**Questions?** Check the detailed docs in [`startup/README.md`](startup/README.md) or open an issue!
+So you can just update that LTS script as needed, and make sure the custom template has your gist URL set as the provisioning_script env var.
