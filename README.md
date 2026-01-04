@@ -32,7 +32,7 @@ https://cloud.vast.ai/templates/
 For LTX, I checked for the latest updates:
 https://huggingface.co/Lightricks/LTX-Video
 
-I forked the LTX provisioning script, and updated to use the latest version of LTX and the recommended workflow using above as a guide and with the AI's help:
+I forked the LTX provisioning script from vast AI, and updated to use the latest version of LTX and the recommended workflow using huggingface as a guide and with the AI's help:
 https://gist.github.com/bartnic2/e0b6c5928430bd9047ea33127869f4c5
 
 So you can just update that LTS script as needed, and make sure the custom template has your gist URL set as the provisioning_script env var.
